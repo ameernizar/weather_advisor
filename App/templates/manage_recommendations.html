@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Weather Advisor | Edit Recommendations{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-title">
+        <div>
+            <h2>Edit Recommendations</h2>
+            <p>Add new recommendation rows or delete existing ones without leaving the app.</p>
+        </div>
+    </div>
+
+    <div class="manager-grid">
+        <div class="card">
+            <form class="form-stack" method="POST" action="{{ url_for('add_recommendation') }}">
+                <label>
+                    Condition
+                    <select name="condition_id" required>
+                        <option value="">Choose a condition</option>
+                        {% for condition_item in conditions %}
+                        <option value="{{ condition_item.condition_id }}">{{ condition_item.condition_name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label>
+                    Category
+                    <select name="category_id" required>
+                        <option value="">Choose a category</option>
+                        {% for category_item in categories %}
+                        <option value="{{ category_item.category_id }}">{{ category_item.category_name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label>
+                    Recommendation Text
+                    <textarea name="recommendation_text" placeholder="Write the recommendation the user should see." required></textarea>
+                </label>
+
+                <button class="button" type="submit">Add Recommendation</button>
+            </form>
+
+            <div class="muted">
+                Exact duplicates are blocked, but the same condition can still have multiple recommendations in the same category if the text is different.
+            </div>
+        </div>
+
+        <div class="table-shell">
+            {% if all_recommendations %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Condition</th>
+                        <th>Category</th>
+                        <th>Recommendation</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recommendation in all_recommendations %}
+                    <tr>
+                        <td>{{ recommendation.recommendation_id }}</td>
+                        <td>{{ recommendation.condition_name }}</td>
+                        <td>{{ recommendation.category_name }}</td>
+                        <td>{{ recommendation.recommendation_text }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('delete_recommendation') }}">
+                                <input type="hidden" name="recommendation_id" value="{{ recommendation.recommendation_id }}">
+                                <button class="danger-button" type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                No recommendations are stored yet. Use the form to create the first one.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

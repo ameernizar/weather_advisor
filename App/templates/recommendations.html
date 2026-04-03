@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Weather Advisor | Recommendations{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-title">
+        <div>
+            <h2>Recommendations</h2>
+            <p>This page shows the advice generated from the most recent weather search you ran.</p>
+        </div>
+        <a class="button" href="{{ url_for('home') }}">Run New Search</a>
+    </div>
+
+    {% if weather %}
+    <div class="link-grid">
+        <div class="link-card">
+            <div class="detail-label">Latest City</div>
+            <div class="metric-value">{{ weather.city }}</div>
+            <div class="card-copy">
+                {{ weather.condition or 'Unknown' }}{% if weather.condition_desc %} • {{ weather.condition_desc }}{% endif %}
+            </div>
+        </div>
+        <div class="link-card">
+            <div class="detail-label">Snapshot</div>
+            <div class="metric-value">{{ weather.temp }}°C</div>
+            <div class="card-copy">
+                Humidity {{ weather.humidity if weather.humidity is not none else '--' }}%,
+                wind {{ weather.wind_speed if weather.wind_speed is not none else '--' }} m/s,
+                UV {{ weather.uv_index if weather.uv_index is not none else '--' }}.
+            </div>
+        </div>
+    </div>
+
+    {% if weather.matched_conditions %}
+    <div class="badge-row">
+        {% for item in weather.matched_conditions %}
+        <span class="badge">{{ item }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-title">
+        <div>
+            <h2>Advice By Category</h2>
+            <p>The recommendations are separated out so users can scan the exact type of advice they need.</p>
+        </div>
+    </div>
+
+    {% if recommendations %}
+    <div class="recommendation-grid">
+        {% for category, items in recommendations.items() %}
+        <article class="recommendation-card">
+            <h3>{{ category }}</h3>
+            <div class="note-list">
+                {% for item in items %}
+                <div class="note-card">{{ item }}</div>
+                {% endfor %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        No generated recommendations are available yet. Go back to the Weather page and search for a city first.
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

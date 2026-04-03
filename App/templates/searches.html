@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Weather Advisor | Search History{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="panel-title">
+        <div>
+            <h2>Search History</h2>
+            <p>Browse the saved observation list on the left and open the full details for any search on the right.</p>
+        </div>
+    </div>
+
+    <div class="status-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Checks</div>
+            <div class="stat-value">{{ summary.total_checks or 0 }}</div>
+            <div class="card-copy">All saved weather lookups in your database.</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Cities Tracked</div>
+            <div class="stat-value">{{ summary.unique_cities or 0 }}</div>
+            <div class="card-copy">Distinct places represented in search history.</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Peak UV / Wind</div>
+            <div class="stat-value">
+                {% if summary.peak_uv is not none %}{{ summary.peak_uv }}{% else %}--{% endif %}
+                /
+                {% if summary.max_wind_mps is not none %}{{ summary.max_wind_mps }}{% else %}--{% endif %}
+            </div>
+            <div class="card-copy">Highest saved UV and wind values in the database.</div>
+        </div>
+    </div>
+
+    {% if top_cities %}
+    <div class="badge-row">
+        {% for item in top_cities %}
+        <span class="badge">{{ item.city }} · {{ item.checks }} checks</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="history-layout">
+        <div>
+            <div class="panel-title">
+                <div>
+                    <h3>Saved Search List</h3>
+                    <p>Choose a row to load its detailed metrics.</p>
+                </div>
+            </div>
+
+            {% if observations %}
+            <div class="history-list">
+                {% for item in observations %}
+                <a
+                    class="history-item {% if selected_observation and item.observation_id == selected_observation.observation_id %}active{% endif %}"
+                    href="{{ url_for('searches_page', observation_id=item.observation_id) }}"
+                >
+                    <div class="history-head">
+                        <span>{{ item.city }}{% if item.country_code %}, {{ item.country_code }}{% endif %}</span>
+                        <span class="history-time">{{ item.observed_at.strftime('%d %b %Y %H:%M') }}</span>
+                    </div>
+                    <div class="history-meta">
+                        <span>{{ item.condition_main or 'Unknown' }}</span>
+                        <span>{{ item.temp_c if item.temp_c is not none else '--' }}°C</span>
+                        <span>Humidity {{ item.humidity_pct if item.humidity_pct is not none else '--' }}%</span>
+                        <span>Wind {{ item.wind_speed_mps if item.wind_speed_mps is not none else '--' }} m/s</span>
+                        <span>UV {{ item.uv_index if item.uv_index is not none else '--' }}</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                No saved searches yet. Run a city search on the Weather page to start building history.
+            </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <div class="panel-title">
+                <div>
+                    <h3>Search Details</h3>
+                    <p>Full observation details for the currently selected saved search.</p>
+                </div>
+            </div>
+
+            {% if selected_observation %}
+            <div class="headline">
+                <div class="headline-city">
+                    {{ selected_observation.city }}{% if selected_observation.country_code %}, {{ selected_observation.country_code }}{% endif %}
+                </div>
+                <div class="headline-temp">{{ selected_observation.temp_c if selected_observation.temp_c is not none else '--' }}°C</div>
+                <div class="headline-desc">
+                    {{ selected_observation.condition_main or 'Unknown condition' }}
+                    {% if selected_observation.condition_desc %} • {{ selected_observation.condition_desc }}{% endif %}
+                </div>
+                <div class="badge-row">
+                    <span class="badge">Observed {{ selected_observation.observed_at.strftime('%d %b %Y %H:%M') }}</span>
+                    <span class="badge">Source {{ selected_observation.source or 'Unknown' }}</span>
+                </div>
+            </div>
+
+            <div class="detail-grid" style="margin-top: 16px;">
+                <div class="detail-card">
+                    <div class="detail-label">Feels Like</div>
+                    <div class="metric-value">{{ selected_observation.feels_like_c if selected_observation.feels_like_c is not none else '--' }}{% if selected_observation.feels_like_c is not none %}°C{% endif %}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Humidity</div>
+                    <div class="metric-value">{{ selected_observation.humidity_pct if selected_observation.humidity_pct is not none else '--' }}{% if selected_observation.humidity_pct is not none %}%{% endif %}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Pressure</div>
+                    <div class="metric-value">{{ selected_observation.pressure_hpa if selected_observation.pressure_hpa is not none else '--' }}{% if selected_observation.pressure_hpa is not none %} hPa{% endif %}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Visibility</div>
+                    <div class="metric-value">{{ selected_observation.visibility_m if selected_observation.visibility_m is not none else '--' }}{% if selected_observation.visibility_m is not none %} m{% endif %}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">Wind</div>
+                    <div class="metric-value">{{ selected_observation.wind_speed_mps if selected_observation.wind_speed_mps is not none else '--' }}{% if selected_observation.wind_speed_mps is not none %} m/s{% endif %}</div>
+                    <div class="detail-copy">
+                        Gust {{ selected_observation.wind_gust_mps if selected_observation.wind_gust_mps is not none else '--' }}
+                        {% if selected_observation.wind_gust_mps is not none %}m/s{% endif %},
+                        direction {{ selected_observation.wind_deg if selected_observation.wind_deg is not none else '--' }}°.
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-label">UV / Clouds</div>
+                    <div class="metric-value">
+                        {{ selected_observation.uv_index if selected_observation.uv_index is not none else '--' }}
+                        /
+                        {{ selected_observation.clouds_pct if selected_observation.clouds_pct is not none else '--' }}%
+                    </div>
+                </div>
+            </div>
+
+            <div class="note-list">
+                <div class="note-card">
+                    Rain: 1h {{ selected_observation.rain_1h_mm if selected_observation.rain_1h_mm is not none else '--' }} mm,
+                    3h {{ selected_observation.rain_3h_mm if selected_observation.rain_3h_mm is not none else '--' }} mm.
+                </div>
+                <div class="note-card">
+                    Snow: 1h {{ selected_observation.snow_1h_mm if selected_observation.snow_1h_mm is not none else '--' }} mm,
+                    3h {{ selected_observation.snow_3h_mm if selected_observation.snow_3h_mm is not none else '--' }} mm.
+                </div>
+                <div class="note-card">
+                    Coordinates:
+                    {{ selected_observation.lat if selected_observation.lat is not none else '--' }},
+                    {{ selected_observation.lon if selected_observation.lon is not none else '--' }}.
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                Pick a saved search from the list to inspect its complete details.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

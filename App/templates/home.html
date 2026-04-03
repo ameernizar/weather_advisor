@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Weather Advisor | Weather{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-grid">
+        <div>
+            <span class="eyebrow">Live City Check</span>
+            <h1>Search once. Use the rest of the app like a dashboard.</h1>
+            <p class="hero-copy">
+                Run a city search here, then jump to the recommendations page for advice,
+                the edit page for database updates, or the history page for saved search details.
+            </p>
+
+            <form class="search-form" method="POST" action="{{ url_for('home') }}">
+                <input type="text" name="city" placeholder="Search a city like Delhi, London, or Tokyo" required>
+                <button type="submit">Get Weather</button>
+            </form>
+        </div>
+
+        <div class="hero-status-grid">
+            <div class="stat-card">
+                <div class="stat-label">Saved Checks</div>
+                <div class="stat-value">{{ summary.total_checks or 0 }}</div>
+                <div class="card-copy">Weather observations stored in your local database.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Cities Tracked</div>
+                <div class="stat-value">{{ summary.unique_cities or 0 }}</div>
+                <div class="card-copy">Distinct cities collected across all saved searches.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Most Checked</div>
+                <div class="stat-value">
+                    {% if top_cities %}{{ top_cities[0].city }}{% else %}--{% endif %}
+                </div>
+                <div class="card-copy">
+                    {% if top_cities %}
+                        {{ top_cities[0].checks }} saved checks so far.
+                    {% else %}
+                        Run a few searches and this card will fill in.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-title">
+        <div>
+            <h2>Current Weather</h2>
+            <p>The latest city you searched is shown here. Its grouped recommendations live on the Recommendations page.</p>
+        </div>
+    </div>
+
+    {% if weather %}
+    <div class="weather-layout">
+        <div class="headline">
+            <div class="headline-city">
+                {{ weather.city }}{% if weather.country_code %}, {{ weather.country_code }}{% endif %}
+            </div>
+            <div class="headline-temp">{{ weather.temp }}°C</div>
+            <div class="headline-desc">
+                {{ weather.condition or 'Unknown condition' }}{% if weather.condition_desc %} • {{ weather.condition_desc }}{% endif %}
+            </div>
+
+            <div class="badge-row">
+                {% if weather.feels_like is not none %}<span class="badge">Feels like {{ weather.feels_like }}°C</span>{% endif %}
+                <span class="badge">Rain {{ weather.rain if weather.rain is not none else 0 }} mm</span>
+                {% if weather.clouds is not none %}<span class="badge">Cloud cover {{ weather.clouds }}%</span>{% endif %}
+                {% if weather.pressure is not none %}<span class="badge">Pressure {{ weather.pressure }} hPa</span>{% endif %}
+            </div>
+
+            {% if weather.matched_conditions %}
+            <div class="note-list">
+                <div class="note-card">
+                    Matching condition rules:
+                    {% for item in weather.matched_conditions %}
+                        {{ item }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="detail-label">Humidity</div>
+                <div class="metric-value">{{ weather.humidity if weather.humidity is not none else '--' }}{% if weather.humidity is not none %}%{% endif %}</div>
+                <div class="metric-hint">Air moisture level.</div>
+            </div>
+            <div class="metric-card">
+                <div class="detail-label">Wind</div>
+                <div class="metric-value">{{ weather.wind_speed if weather.wind_speed is not none else '--' }}{% if weather.wind_speed is not none %} m/s{% endif %}</div>
+                <div class="metric-hint">Useful for comfort and travel planning.</div>
+            </div>
+            <div class="metric-card">
+                <div class="detail-label">UV Index</div>
+                <div class="metric-value">{{ weather.uv_index if weather.uv_index is not none else '--' }}</div>
+                <div class="metric-hint">Sun exposure intensity right now.</div>
+            </div>
+            <div class="metric-card">
+                <div class="detail-label">Visibility</div>
+                <div class="metric-value">{{ weather.visibility if weather.visibility is not none else '--' }}{% if weather.visibility is not none %} m{% endif %}</div>
+                <div class="metric-hint">Helpful for road and commute conditions.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="link-grid" style="margin-top: 18px;">
+        <a class="link-card" href="{{ url_for('recommendations_page') }}">
+            <div class="detail-label">Next Stop</div>
+            <div class="metric-value">Recommendations</div>
+            <div class="card-copy">See the grouped advice generated from this latest search.</div>
+        </a>
+        <a class="link-card" href="{{ url_for('searches_page') }}">
+            <div class="detail-label">Saved Details</div>
+            <div class="metric-value">Search History</div>
+            <div class="card-copy">Review stored observations and open the full details for each search.</div>
+        </a>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        Search a city to populate this page with the current weather snapshot and matching condition rules.
+    </div>
+    {% endif %}
+</section>
+
+{% if city_comparison %}
+<section class="panel">
+    <div class="panel-title">
+        <div>
+            <h2>Saved Comparison</h2>
+            <p>The latest search compared with your saved weather history for the same city.</p>
+        </div>
+    </div>
+
+    {% if city_comparison.summary_lines %}
+    <div class="note-list">
+        {% for line in city_comparison.summary_lines %}
+        <div class="note-card">{{ line | capitalize }}.</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if city_comparison.city_profile %}
+    <div class="detail-grid" style="margin-top: 16px;">
+        <div class="detail-card">
+            <div class="detail-label">Saved Checks For City</div>
+            <div class="metric-value">{{ city_comparison.city_profile.total_checks or 0 }}</div>
+        </div>
+        <div class="detail-card">
+            <div class="detail-label">Average Saved Temp</div>
+            <div class="metric-value">
+                {% if city_comparison.city_profile.avg_temp_c is not none %}
+                    {{ city_comparison.city_profile.avg_temp_c }}°C
+                {% else %}
+                    --
+                {% endif %}
+            </div>
+        </div>
+        <div class="detail-card">
+            <div class="detail-label">Recorded Range</div>
+            <div class="metric-value">
+                {% if city_comparison.city_profile.coolest_temp_all is not none %}
+                    {{ city_comparison.city_profile.coolest_temp_all }}°C to {{ city_comparison.city_profile.hottest_temp_all }}°C
+                {% else %}
+                    --
+                {% endif %}
+            </div>
+        </div>
+        <div class="detail-card">
+            <div class="detail-label">First Seen</div>
+            <div class="metric-value">{{ city_comparison.city_profile.first_seen or '--' }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if city_comparison.weekly_lines %}
+    <div class="note-list">
+        {% for line in city_comparison.weekly_lines %}
+        <div class="note-card">{{ line }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if city_comparison.reference %}
+    <div class="note-list">
+        <div class="note-card">
+            Reference point: {{ city_comparison.reference.condition_main or 'Unknown' }},
+            {{ city_comparison.reference.temp_c if city_comparison.reference.temp_c is not none else '--' }}°C
+            on {{ city_comparison.reference.observed_at or '--' }}.
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+<section class="panel">
+    <div class="panel-title">
+        <div>
+            <h2>Recent Searches</h2>
+            <p>A quick preview of your saved weather searches. Open Search History for the full detail view.</p>
+        </div>
+    </div>
+
+    {% if recent_observations %}
+    <div class="history-list">
+        {% for item in recent_observations %}
+        <a class="history-item" href="{{ url_for('searches_page', observation_id=item.observation_id) }}">
+            <div class="history-head">
+                <span>{{ item.city }}{% if item.country_code %}, {{ item.country_code }}{% endif %}</span>
+                <span class="history-time">{{ item.observed_at }}</span>
+            </div>
+            <div class="history-meta">
+                <span>{{ item.condition_main or 'Unknown' }}</span>
+                <span>{{ item.temp_c if item.temp_c is not none else '--' }}°C</span>
+                <span>Humidity {{ item.humidity_pct if item.humidity_pct is not none else '--' }}%</span>
+                <span>Wind {{ item.wind_speed_mps if item.wind_speed_mps is not none else '--' }} m/s</span>
+                <span>UV {{ item.uv_index if item.uv_index is not none else '--' }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        No saved observations yet. Search for a city and the history pages will start filling up.
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
